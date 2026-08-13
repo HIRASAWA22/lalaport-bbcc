@@ -125,7 +125,7 @@ a{color:inherit}
 <div id="view-list">
   <div class="controls">
     <input id="q" class="search" type="search" placeholder="日本語でOK：ラーメン / 靴 / スタバ / 韓国 / 家電" autocomplete="off">
-    <div class="rowlabel">分類</div>
+    <div class="rowlabel">分類　<span style="font-weight:600;color:var(--sub);font-size:11px">タップでON／もう一度でOFF・複数選択OK（掛け合わせて絞り込み）</span></div>
     <div class="chips" id="buckets"></div>
     <div class="rowlabel">サブ分類（ジャンル）</div>
     <div class="chips" id="genres"></div>
@@ -208,7 +208,12 @@ document.getElementById('total').textContent = DATA.length;
 const BL={shop:'ショップ',food:'飲食',super:'スーパー',conveni:'コンビニ的',ent:'娯楽',service:'サービス美容'};
 const BORDER={shop:'b-shop',food:'b-food',super:'b-super',conveni:'b-conveni',ent:'b-ent',service:'b-service'};
 const FLOORS=['LG1','G','L1','L2','L3','L4','L5'];
-const state={q:'',bucket:'all',genre:'all',floor:'all',price:'all',mapFloor:'LG1'};
+const state={q:'',mapFloor:'LG1'};
+// 複数選択フィルタ（同種はOR、種類間はAND）。空＝すべて
+const F={buckets:new Set(),genres:new Set(),floors:new Set(),prices:new Set()};
+function toggleIn(set,val){ if(set.has(val)) set.delete(val); else set.add(val); }
+function paintChips(wrap,set){ [...wrap.children].forEach(x=>{ const v=x.dataset.val;
+  x.classList.toggle('on', v==='all' ? set.size===0 : set.has(v)); }); }
 
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function phLabel(d){return (d.genre||'').slice(0,8);}
@@ -236,43 +241,48 @@ function makeChip(parent,label,val,active,onclick,cls){
   c.className='chip'+(cls||'')+(active?' on':'');
   c.textContent=label;c.dataset.val=val;c.onclick=onclick;parent.appendChild(c);return c;
 }
-// ---- bucket chips ----
+// ---- bucket chips（複数選択トグル）----
 const bc={};DATA.forEach(d=>bc[d.bucket]=(bc[d.bucket]||0)+1);
 const bwrap=document.getElementById('buckets');
-function selectBucket(val){
-  state.bucket=val;state.genre='all';
-  [...bwrap.children].forEach(x=>x.classList.toggle('on',x.dataset.val===val));
-  buildGenres();renderList();
+function clickBucket(val){
+  if(val==='all') F.buckets.clear(); else toggleIn(F.buckets,val);
+  paintChips(bwrap,F.buckets); buildGenres(); renderList();
 }
-makeChip(bwrap,'すべて '+DATA.length,'all',true,()=>selectBucket('all'));
-['shop','food','super','conveni','ent','service'].forEach(b=>{if(bc[b])makeChip(bwrap,BL[b]+' '+bc[b],b,false,()=>selectBucket(b));});
-// ---- genre (sub-category) chips, rebuilt per bucket ----
+makeChip(bwrap,'すべて '+DATA.length,'all',true,()=>clickBucket('all'));
+['shop','food','super','conveni','ent','service'].forEach(b=>{if(bc[b])makeChip(bwrap,BL[b]+' '+bc[b],b,false,()=>clickBucket(b));});
+// ---- genre (sub-category) chips, rebuilt per selected buckets ----
 const gwrap=document.getElementById('genres');
-function selectGenre(val){
-  state.genre=val;
-  [...gwrap.children].forEach(x=>x.classList.toggle('on',x.dataset.val===val));
-  renderList();
+function clickGenre(val){
+  if(val==='all') F.genres.clear(); else toggleIn(F.genres,val);
+  paintChips(gwrap,F.genres); renderList();
 }
 function buildGenres(){
-  const pool=DATA.filter(d=>state.bucket==='all'||d.bucket===state.bucket);
+  const pool=DATA.filter(d=>F.buckets.size===0||F.buckets.has(d.bucket));
   const gc={};pool.forEach(d=>(d.tags||[d.genre]).forEach(t=>gc[t]=(gc[t]||0)+1));
   const genres=Object.keys(gc).sort((a,b)=>gc[b]-gc[a]||a.localeCompare(b));
+  [...F.genres].forEach(g=>{ if(!gc[g]) F.genres.delete(g); }); // 対象外になったジャンルは解除
   gwrap.innerHTML='';
-  makeChip(gwrap,'すべて','all',state.genre==='all',()=>selectGenre('all'));
-  genres.forEach(g=>makeChip(gwrap,g+' '+gc[g],g,state.genre===g,()=>selectGenre(g)));
+  makeChip(gwrap,'すべて','all',F.genres.size===0,()=>clickGenre('all'));
+  genres.forEach(g=>makeChip(gwrap,g+' '+gc[g],g,F.genres.has(g),()=>clickGenre(g)));
 }
-// ---- floor chips ----
+// ---- floor chips（複数選択トグル）----
 const fwrap=document.getElementById('floors');
-function selectFloor(val){state.floor=val;[...fwrap.children].forEach(x=>x.classList.toggle('on',x.dataset.val===val));renderList();}
-makeChip(fwrap,'すべて','all',true,()=>selectFloor('all'));
-FLOORS.forEach(f=>{if(DATA.some(d=>d.floor===f))makeChip(fwrap,f,f,false,()=>selectFloor(f));});
-// ---- price chips ----
+function clickFloor(val){
+  if(val==='all') F.floors.clear(); else toggleIn(F.floors,val);
+  paintChips(fwrap,F.floors); renderList();
+}
+makeChip(fwrap,'すべて','all',true,()=>clickFloor('all'));
+FLOORS.forEach(f=>{if(DATA.some(d=>d.floor===f))makeChip(fwrap,f,f,false,()=>clickFloor(f));});
+// ---- price chips（複数選択トグル）----
 const pwrap=document.getElementById('prices');
-function selectPrice(val){state.price=val;[...pwrap.children].forEach(x=>x.classList.toggle('on',x.dataset.val===val));renderList();}
-makeChip(pwrap,'すべて','all',true,()=>selectPrice('all'),' food');
-makeChip(pwrap,'¥ お手軽','1',false,()=>selectPrice('1'),' food');
-makeChip(pwrap,'¥¥ 普通','2',false,()=>selectPrice('2'),' food');
-makeChip(pwrap,'¥¥¥ 贅沢','3',false,()=>selectPrice('3'),' food');
+function clickPrice(val){
+  if(val==='all') F.prices.clear(); else toggleIn(F.prices,val);
+  paintChips(pwrap,F.prices); renderList();
+}
+makeChip(pwrap,'すべて','all',true,()=>clickPrice('all'),' food');
+makeChip(pwrap,'¥ お手軽','1',false,()=>clickPrice('1'),' food');
+makeChip(pwrap,'¥¥ 普通','2',false,()=>clickPrice('2'),' food');
+makeChip(pwrap,'¥¥¥ 贅沢','3',false,()=>clickPrice('3'),' food');
 document.getElementById('q').addEventListener('input',e=>{state.q=e.target.value.trim().toLowerCase();renderList();});
 
 function renderList(){
@@ -280,18 +290,19 @@ function renderList(){
   const terms=state.q.split(/\s+/).filter(Boolean);
   let out='',n=0;
   DATA.forEach(d=>{
-    if(state.bucket!=='all'&&d.bucket!==state.bucket)return;
-    if(state.genre!=='all'&&!(d.tags||[]).includes(state.genre))return;
-    if(state.floor!=='all'&&d.floor!==state.floor)return;
-    if(state.price!=='all'){if(d.bucket!=='food'||String(d.price)!==state.price)return;}
+    if(F.buckets.size && !F.buckets.has(d.bucket))return;
+    if(F.genres.size && !(d.tags||[]).some(t=>F.genres.has(t)))return;
+    if(F.floors.size && !F.floors.has(d.floor))return;
+    if(F.prices.size){ if(d.bucket!=='food' || !F.prices.has(String(d.price)))return; }
     if(terms.length&&!terms.every(t=>d.kw.includes(t)))return;
     n++;out+=cardHTML(d);
   });
   rows.innerHTML=out;
   const im=document.getElementById('floormap-inline');
-  if(state.floor!=='all' && FLOORMAPS[state.floor]){
-    im.innerHTML='<details class="inlinemap"><summary>🗺 '+(FLOORLABEL[state.floor]||state.floor)+' の地図を見る</summary>'+
-      '<img class="mapimg" loading="lazy" src="'+FLOORMAPS[state.floor]+'" alt="floor map"></details>';
+  const onef=F.floors.size===1 ? [...F.floors][0] : null;
+  if(onef && FLOORMAPS[onef]){
+    im.innerHTML='<details class="inlinemap"><summary>🗺 '+(FLOORLABEL[onef]||onef)+' の地図を見る</summary>'+
+      '<img class="mapimg" loading="lazy" src="'+FLOORMAPS[onef]+'" alt="floor map"></details>';
   } else { im.innerHTML=''; }
   document.getElementById('count').textContent=n+' 店を表示中';
   document.getElementById('empty').classList.toggle('hide',n>0);
