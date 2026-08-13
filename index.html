@@ -58,10 +58,10 @@ a{color:inherit}
 @media (min-width:680px){ .grid{grid-template-columns:1fr 1fr} }
 .card{display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);
   border-radius:16px;overflow:hidden}
-.thumb{width:100%;height:124px;object-fit:contain;background:#fff;
-  border-bottom:1px solid var(--line);display:block;padding:14px;box-sizing:border-box}
-.thumb.ph{display:flex;align-items:center;justify-content:center;text-align:center;
-  font-size:13px;font-weight:800;color:var(--sub);padding:10px;line-height:1.3;background:#faf7f1}
+.logowrap{height:96px;display:flex;align-items:center;justify-content:center;
+  background:#fff;border-bottom:1px solid var(--line);padding:8px 16px;box-sizing:border-box}
+.logo{height:54px;width:auto;max-width:78%;object-fit:contain;display:block}
+.logoph{font-size:13px;font-weight:800;color:var(--sub);text-align:center;line-height:1.3}
 .body{min-width:0;padding:11px 13px 13px}
 .nm{font-size:15px;font-weight:800;letter-spacing:.01em;margin:1px 0 4px;overflow-wrap:anywhere}
 .badges{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-bottom:5px}
@@ -212,9 +212,10 @@ const state={q:'',bucket:'all',genre:'all',floor:'all',price:'all',mapFloor:'LG1
 function esc(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function phLabel(d){return (d.genre||'').slice(0,8);}
 function cardHTML(d){
-  const img = d.img
-    ? '<img class="thumb" loading="lazy" src="'+esc(d.img)+'" alt="" onerror="this.outerHTML=\'<div class=&quot;thumb ph&quot;>'+esc(phLabel(d))+'</div>\'">'
-    : '<div class="thumb ph">'+esc(phLabel(d))+'</div>';
+  const logo = d.img
+    ? '<img class="logo" loading="lazy" src="'+esc(d.img)+'" alt="" onerror="this.outerHTML=\'<span class=&quot;logoph&quot;>'+esc(phLabel(d))+'</span>\'">'
+    : '<span class="logoph">'+esc(phLabel(d))+'</span>';
+  const img = '<div class="logowrap">'+logo+'</div>';
   const price = d.priceLabel ? '<span class="price nw">'+esc(d.priceLabel)+'</span>' : '';
   const note = d.note ? '<div class="note">'+esc(d.note)+'</div>' : '';
   const hook = d.hook ? '<div class="hook">'+esc(d.hook)+'</div>' : '';
