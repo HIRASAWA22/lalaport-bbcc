@@ -15,6 +15,16 @@
 @media (prefers-color-scheme: dark){
   :root{ --bg:#15130f; --card:#1e1b16; --ink:#f2efe8; --sub:#a49e92; --line:#33302a; }
 }
+/* 手動テーマ（OS設定より優先） */
+html[data-mode="light"]{ --bg:#f5f3ee; --card:#ffffff; --ink:#141414; --sub:#6d6a63; --line:#e2ddd3; }
+html[data-mode="dark"]{ --bg:#15130f; --card:#1e1b16; --ink:#f2efe8; --sub:#a49e92; --line:#33302a; }
+/* 配色切替バー */
+.themebar{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-top:9px}
+.themebar .tlabel{font-size:10px;letter-spacing:.12em;color:rgba(255,255,255,.65);font-weight:800;margin-right:2px}
+.sw{width:22px;height:22px;border-radius:50%;border:2px solid rgba(255,255,255,.35);cursor:pointer;padding:0;line-height:0}
+.sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+.modebtn{appearance:none;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;
+  border-radius:9px;padding:3px 10px;font-size:12px;cursor:pointer;font-weight:700;margin-left:4px}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);
@@ -113,6 +123,17 @@ a{color:inherit}
   <h1>ららぽーとBBCC 攻略ブック</h1>
   <p class="meta">三井ショッピングパーク ららぽーと ブキッ・ビンタン・シティ・センター<br>
   全 <span id="total"></span> 店　|　<span class="nw">営業時間 10:00–22:00</span>（館全体の目安）　|　<a href="https://mitsui-shopping-park.com.my/LaLaportBBCC/Main/Index" target="_blank" rel="noopener">公式サイト</a></p>
+  <div class="themebar">
+    <span class="tlabel">配色</span>
+    <button class="sw" data-t="orange" style="background:#e8481c" onclick="setAccent('orange')" title="オレンジ"></button>
+    <button class="sw" data-t="red" style="background:#d62828" onclick="setAccent('red')" title="レッド"></button>
+    <button class="sw" data-t="blue" style="background:#2f6fed" onclick="setAccent('blue')" title="ブルー"></button>
+    <button class="sw" data-t="teal" style="background:#0f9b8e" onclick="setAccent('teal')" title="ティール"></button>
+    <button class="sw" data-t="green" style="background:#2f9e63" onclick="setAccent('green')" title="グリーン"></button>
+    <button class="sw" data-t="purple" style="background:#7a3ff2" onclick="setAccent('purple')" title="パープル"></button>
+    <button class="sw" data-t="pink" style="background:#e0409a" onclick="setAccent('pink')" title="ピンク"></button>
+    <button id="modebtn" class="modebtn" onclick="toggleMode()">🌙 ダーク</button>
+  </div>
 </div>
 <div class="tabs">
   <button id="tab-list" class="on" onclick="setView('list')">検索</button>
@@ -347,6 +368,27 @@ function showFloorMap(f){ state.mapFloor=f; renderMap(); setView('map'); }
 FLOORS.forEach(f=>{ if(FLOORMAPS[f]) makeChip(mfwrap,(FLOORLABEL[f]||f),f,f===state.mapFloor,()=>selectMapFloor(f)); });
 renderMap();
 buildGenres();renderList();renderReco();renderHours();
+
+// ---- 配色テーマ切替（常設・端末に記憶）----
+const ACCENTS={orange:'#e8481c',red:'#d62828',blue:'#2f6fed',teal:'#0f9b8e',green:'#2f9e63',purple:'#7a3ff2',pink:'#e0409a'};
+function tStore(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+function tLoad(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function setAccent(name){
+  const c=ACCENTS[name]||ACCENTS.orange;
+  document.documentElement.style.setProperty('--accent',c);
+  tStore('bbcc_accent',name);
+  [...document.querySelectorAll('.sw')].forEach(s=>s.classList.toggle('on',s.dataset.t===name));
+}
+function applyMode(m){
+  document.documentElement.setAttribute('data-mode',m);
+  const b=document.getElementById('modebtn'); if(b) b.textContent=(m==='dark'?'☀️ ライト':'🌙 ダーク');
+}
+function toggleMode(){
+  const cur=document.documentElement.getAttribute('data-mode')||'light';
+  const m=cur==='dark'?'light':'dark'; applyMode(m); tStore('bbcc_mode',m);
+}
+setAccent(tLoad('bbcc_accent')||'orange');
+applyMode(tLoad('bbcc_mode') || (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light'));
 </script>
 </body>
 </html>
