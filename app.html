@@ -6,13 +6,23 @@
 <title>ららぽーとBBCC 攻略ブック</title>
 <style>
 :root{
-  /* 雑誌パターン11「自遊人」＝和・静謐。アイボリー基調・固定配色 */
-  --bg:#f4efe3; --card:#fffdf7; --ink:#2b2620; --sub:#847b6c; --line:#e3dbca; --hookbg:#f4eee0;
-  --accent:#33586a; --topbg:#efe8d8; --topink:#3a342b;
+  /* UI-002 色彩モード：標準（承認済みアイボリー基調）。初期表示はこれ */
+  --bg:#f4f0ea; --card:#ffffff; --ink:#2c2a29; --sub:#5c7a95; --line:#dcd4c9; --hookbg:#eef2f5;
+  --accent:#3f6486; --topbg:#ece6da; --topink:#2c2a29;
   --shop:#3f6a7d; --food:#b5532f; --super:#5f7d50; --conveni:#7a6b96; --ent:#9c5570; --service:#8a7a5c;
   --maxw:960px;
   --safe-b:env(safe-area-inset-bottom,0px);
 }
+/* クリア（白基調・明瞭） */
+html[data-mode="clear"]{ --bg:#f7f9fb; --card:#ffffff; --ink:#1c2430; --sub:#5a6b7a; --line:#e4e8ee; --hookbg:#eef4fa; --accent:#2f6796; --topbg:#ffffff; --topink:#1c2430; }
+/* ソフト（刺激を抑えたやわらかい配色） */
+html[data-mode="soft"]{ --bg:#e9ebe8; --card:#f6f7f4; --ink:#2c342f; --sub:#6f7a72; --line:#d5d9d3; --hookbg:#e7eef0; --accent:#4a7488; --topbg:#e3e6e0; --topink:#2c342f; }
+/* ダーク（暗所向け・コントラスト確保） */
+html[data-mode="dark"]{ --bg:#12161a; --card:#1b2127; --ink:#e9edf1; --sub:#9fb0bd; --line:#2c353d; --hookbg:#20303a; --accent:#79b3d1; --topbg:#0f151a; --topink:#e9edf1; }
+/* ハイコントラスト（文字・枠・選択を明確に） */
+html[data-mode="contrast"]{ --bg:#ffffff; --card:#ffffff; --ink:#000000; --sub:#2a2a2a; --line:#4d4d4d; --hookbg:#e6eef5; --accent:#0b3d5c; --topbg:#ffffff; --topink:#000000; }
+html[data-mode="contrast"] .chip{border-width:2px}
+html[data-mode="contrast"] .card,html[data-mode="contrast"] .mapstore{border-width:2px}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--ink);
@@ -116,6 +126,13 @@ a{color:inherit}
 .inlinemap[open]>summary{margin-bottom:8px}
 .foot{color:var(--sub);font-size:11px;margin-top:26px;border-top:1px solid var(--line);padding-top:12px;line-height:1.7}
 .hide{display:none!important}
+/* UI-002 配色モード切替バー（ヘッダ常設・文字ラベル・折り返し） */
+.modebar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+.modebar .modelbl{font-size:11px;letter-spacing:.1em;font-weight:800;color:var(--topink);opacity:.7;margin-right:2px}
+.modebar .modebtn{min-height:44px;padding:8px 13px;border-radius:11px;border:1.5px solid var(--line);
+  background:var(--card);color:var(--ink);font-size:13px;font-weight:800;cursor:pointer;line-height:1.15}
+.modebar .modebtn.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.modebar .modebtn.on::before{content:"✓ "}
 </style>
 </head>
 <body>
@@ -124,6 +141,14 @@ a{color:inherit}
   <h1>ららぽーとBBCC 攻略ブック</h1>
   <p class="meta">三井ショッピングパーク ららぽーと ブキッ・ビンタン・シティ・センター<br>
   全 <span id="total"></span> 店　|　<span class="nw">営業時間 10:00–22:00</span>（館全体の目安）　|　<a href="https://mitsui-shopping-park.com.my/LaLaportBBCC/Main/Index" target="_blank" rel="noopener">公式サイト</a></p>
+  <div class="modebar" role="group" aria-label="配色モード切替">
+    <span class="modelbl">配色</span>
+    <button type="button" class="modebtn" data-m="standard" onclick="setMode('standard')">標準</button>
+    <button type="button" class="modebtn" data-m="clear" onclick="setMode('clear')">クリア</button>
+    <button type="button" class="modebtn" data-m="soft" onclick="setMode('soft')">ソフト</button>
+    <button type="button" class="modebtn" data-m="dark" onclick="setMode('dark')">ダーク</button>
+    <button type="button" class="modebtn" data-m="contrast" onclick="setMode('contrast')">ハイコントラスト</button>
+  </div>
 </div>
 <div class="tabs">
   <button id="tab-list" class="on" onclick="setView('list')">検索</button>
@@ -380,6 +405,26 @@ function showFloorMap(f){ state.mapFloor=f; state.mapStore=null; renderMap(); se
 FLOORS.forEach(f=>{ if(FLOORMAPS[f]) makeChip(mfwrap,(FLOORLABEL[f]||f),f,f===state.mapFloor,()=>selectMapFloor(f)); });
 renderMap();
 buildGenres();renderList();renderReco();renderHours();
+
+// ---- UI-002 色彩モード（5種・端末保存・不正値は標準へ復旧・OS自動追従なし）----
+var MODES=['standard','clear','soft','dark','contrast'];
+var MODEKEY='lalaportBbccColorMode';
+function setMode(m){
+  if(MODES.indexOf(m)<0) m='standard';
+  document.documentElement.setAttribute('data-mode',m);
+  try{ localStorage.setItem(MODEKEY,m); }catch(e){}
+  var bs=document.querySelectorAll('.modebar .modebtn');
+  for(var i=0;i<bs.length;i++){
+    var on=bs[i].getAttribute('data-m')===m;
+    bs[i].classList.toggle('on',on);
+    bs[i].setAttribute('aria-pressed', on?'true':'false');
+  }
+}
+(function(){
+  var s=null; try{ s=localStorage.getItem(MODEKEY); }catch(e){ s=null; }
+  if(MODES.indexOf(s)<0) s='standard';   // 不正値・未設定は標準へ安全復帰
+  setMode(s);
+})();
 
 </script>
 </body>
