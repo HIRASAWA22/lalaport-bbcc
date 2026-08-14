@@ -393,8 +393,8 @@ function applyMapZoom(){
   var img=document.getElementById('map-img'); if(!img) return;
   img.style.width=(Math.round(mapZoomLv*100))+'%';
   var crop=function(){ var h=img.getBoundingClientRect().height; if(h>0) img.style.marginTop=(-Math.round(h*MAP_BANNER))+'px'; };
-  if(img.complete && img.naturalWidth){ requestAnimationFrame(crop); }
-  else { img.onload=function(){ requestAnimationFrame(crop); }; }
+  if(img.complete && img.naturalWidth){ crop(); }
+  else { img.onload=crop; }
 }
 function mapZoom(d){ mapZoomLv=Math.min(4, Math.max(1, +(mapZoomLv+(d>0?0.6:-0.6)).toFixed(2))); applyMapZoom(); }
 function mapZoomFit(){ mapZoomLv=1; applyMapZoom(); var v=document.getElementById('mapview'); if(v) v.scrollTo(0,0); }
