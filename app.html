@@ -106,6 +106,15 @@ a{color:inherit}
 .sec .st h3{margin:0;font-size:17px;font-weight:900}
 .sec .st .sd{font-size:11.5px;color:var(--sub);font-weight:700;margin-left:auto}
 .mapwrap{margin:12px 0}
+.mapzoombar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:2px 2px 8px}
+.zbtn{min-height:44px;padding:8px 13px;border:1.5px solid var(--line);border-radius:10px;
+  background:var(--card);color:var(--ink);font-weight:800;font-size:13px;cursor:pointer;line-height:1.1}
+.zlink{margin-left:auto;color:var(--accent);font-weight:800;text-decoration:none;font-size:12px;padding:6px 2px}
+.mapcap{font-size:12px;color:var(--sub);font-weight:700;margin:0 2px 6px}
+.mapcap2{font-size:11px;color:var(--sub);margin:6px 2px 0}
+.mapview{overflow:auto;max-height:72vh;border:1px solid var(--line);border-radius:12px;
+  background:var(--card);-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y pinch-zoom}
+.mapview img{display:block;width:100%}
 .mapimg{width:100%;border:1px solid var(--line);border-radius:12px;background:var(--card);display:block}
 .maptools{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 2px;font-size:12px;color:var(--sub)}
 .maptools a{color:var(--accent);font-weight:800;text-decoration:none}
@@ -219,10 +228,17 @@ a{color:inherit}
   <div class="wrap">
     <div id="map-store" class="mapstore hide"></div>
     <div class="mapwrap">
-      <div class="maptools"><span id="map-caption"></span><a id="map-open" href="#" target="_blank" rel="noopener">別タブで拡大 ↗</a></div>
-      <img id="map-img" class="mapimg" alt="フロアマップ" loading="lazy">
+      <div class="mapzoombar">
+        <button type="button" class="zbtn" onclick="mapZoom(-1)">− 縮小</button>
+        <button type="button" class="zbtn" onclick="mapZoomFit()">フィット</button>
+        <button type="button" class="zbtn" onclick="mapZoom(1)">＋ 拡大</button>
+        <a id="map-open" href="#" target="_blank" rel="noopener" class="zlink">別タブで拡大 ↗</a>
+      </div>
+      <div id="map-caption" class="mapcap"></div>
+      <div id="mapview" class="mapview"><img id="map-img" alt="フロアマップ"></div>
+      <div class="mapcap2">指でのピンチ操作でも拡大できます。上下左右にスワイプで移動</div>
     </div>
-    <div class="foot">フロアマップは公式サイトの画像です。表示にはネット接続が必要です。上の「区画番号」を、この地図に印字された番号と照らし合わせると、選んだ店の場所が特定できます</div>
+    <div class="foot">フロアマップは公式サイトの画像です（上部の館名バナーはカットしています）。表示にはネット接続が必要です。上の「区画番号」を、この地図に印字された番号と照らし合わせると、選んだ店の場所が特定できます</div>
   </div>
 </div>
 
@@ -369,13 +385,25 @@ function setView(v){
   });
   window.scrollTo(0,0);
 }
-// ---- floor map ----
+// ---- floor map（ズーム＋上部バナーのカット）----
 const mfwrap=document.getElementById('mapfloors');
+var mapZoomLv=1;
+var MAP_BANNER=0.09;   // 地図画像 上部の館名バナーを高さ比でカット
+function applyMapZoom(){
+  var img=document.getElementById('map-img'); if(!img) return;
+  img.style.width=(Math.round(mapZoomLv*100))+'%';
+  var crop=function(){ var h=img.getBoundingClientRect().height; if(h>0) img.style.marginTop=(-Math.round(h*MAP_BANNER))+'px'; };
+  if(img.complete && img.naturalWidth){ requestAnimationFrame(crop); }
+  else { img.onload=function(){ requestAnimationFrame(crop); }; }
+}
+function mapZoom(d){ mapZoomLv=Math.min(4, Math.max(1, +(mapZoomLv+(d>0?0.6:-0.6)).toFixed(2))); applyMapZoom(); }
+function mapZoomFit(){ mapZoomLv=1; applyMapZoom(); var v=document.getElementById('mapview'); if(v) v.scrollTo(0,0); }
 function renderMap(){
   const f=state.mapFloor||'LG1';
   const url=FLOORMAPS[f]||'';
   document.getElementById('map-img').src=url;
   document.getElementById('map-open').href=url;
+  mapZoomLv=1; applyMapZoom();
   document.getElementById('map-caption').textContent='フロア：'+(FLOORLABEL[f]||f);
   [...mfwrap.children].forEach(x=>x.classList.toggle('on',x.dataset.val===f));
   // 選択中の店を地図の上に表示（連動）
